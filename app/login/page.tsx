@@ -1,5 +1,5 @@
 "use client";
-// app/login/page.tsx
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Eye, EyeOff } from "lucide-react";
@@ -7,69 +7,99 @@ import { createClient } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [tab, setTab] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ email: "", password: "", full_name: "", department: "" });
+
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    full_name: "",
+    department: "",
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     setLoading(true);
     setError("");
+
     const supabase = createClient();
 
-    if (tab === "login") {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.password,
-      });
-      if (error) {
-        setError(error.message);
-      } else {
+    try {
+      if (tab === "login") {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: form.email,
+          password: form.password,
+        });
+
+        if (error) {
+          setError(error.message);
+          setLoading(false);
+          return;
+        }
+
         router.push("/dashboard");
         router.refresh();
+        return;
       }
-    } else {
+
       const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
       });
+
       if (error) {
         setError(error.message);
-      } else if (data.user) {
-        // Create profile
+        setLoading(false);
+        return;
+      }
+
+      if (data.user) {
         await supabase.from("profiles").insert({
           id: data.user.id,
           full_name: form.full_name,
           department: form.department,
-          role: "viewer", // default role; admin promotes later
-        });
+          role: "viewer",
+        } as any);
+
         setError("Check your email to confirm your account.");
       }
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong.");
     }
+
     setLoading(false);
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-2">
             <Box size={22} className="text-blue-600" />
-            <span className="text-lg font-semibold text-gray-900">ProcureHub</span>
+            <span className="text-lg font-semibold text-gray-900">
+              ProcureHub
+            </span>
           </div>
-          <p className="text-sm text-gray-500">Procurement management portal</p>
+          <p className="text-sm text-gray-500">
+            Procurement management portal
+          </p>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-7">
-          {/* Tabs */}
           <div className="flex mb-6 border-b border-gray-100">
             {(["login", "signup"] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => { setTab(t); setError(""); }}
+                type="button"
+                onClick={() => {
+                  setTab(t);
+                  setError("");
+                }}
                 className={`flex-1 pb-3 text-sm font-medium border-b-2 transition-colors ${
                   tab === t
                     ? "border-blue-500 text-blue-600"
@@ -91,15 +121,20 @@ export default function LoginPage() {
                     required
                     placeholder="Your full name"
                     value={form.full_name}
-                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, full_name: e.target.value })
+                    }
                   />
                 </div>
+
                 <div>
                   <label className="label">Department</label>
                   <select
                     className="input"
                     value={form.department}
-                    onChange={(e) => setForm({ ...form, department: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, department: e.target.value })
+                    }
                   >
                     <option value="">Select department</option>
                     <option>IT</option>
@@ -122,12 +157,15 @@ export default function LoginPage() {
                 required
                 placeholder="you@company.sa"
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, email: e.target.value })
+                }
               />
             </div>
 
             <div>
               <label className="label">Password *</label>
+
               <div className="relative">
                 <input
                   className="input pr-10"
@@ -136,8 +174,11 @@ export default function LoginPage() {
                   minLength={8}
                   placeholder="Min. 8 characters"
                   value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
                 />
+
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
@@ -149,11 +190,13 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <p className={`text-xs px-3 py-2 rounded-lg ${
-                error.includes("Check your email")
-                  ? "bg-green-50 text-green-700"
-                  : "bg-red-50 text-red-600"
-              }`}>
+              <p
+                className={`text-xs px-3 py-2 rounded-lg ${
+                  error.includes("Check your email")
+                    ? "bg-green-50 text-green-700"
+                    : "bg-red-50 text-red-600"
+                }`}
+              >
                 {error}
               </p>
             )}
@@ -165,14 +208,19 @@ export default function LoginPage() {
             >
               {loading
                 ? "Please wait…"
-                : tab === "login" ? "Sign in" : "Create account"}
+                : tab === "login"
+                  ? "Sign in"
+                  : "Create account"}
             </button>
           </form>
 
           {tab === "login" && (
             <p className="text-xs text-center text-gray-400 mt-4">
               Forgot your password?{" "}
-              <a href="mailto:admin@company.sa" className="text-blue-600 hover:underline">
+              <a
+                href="mailto:admin@company.sa"
+                className="text-blue-600 hover:underline"
+              >
                 Contact your admin
               </a>
             </p>
@@ -180,7 +228,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          ProcureHub · Powered by Supabase & Next.js · Free to deploy
+          ProcureHub · Powered by Supabase & Next.js
         </p>
       </div>
     </div>
